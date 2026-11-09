@@ -91,8 +91,10 @@ export function renderTopHeader(
       <div class="topbar-controls">
         <div class="status-group">
           <span class="live-chip">
-            <span class="dot" data-tone="live" data-pulse="true"></span>
-            <span>Live</span>
+            <span class="row" style="gap: 5px">
+              <span class="dot" data-tone="live" data-pulse="true"></span>
+              <span>Live</span>
+            </span>
             <span class="live-chip-count">${esc(liveAgo)}</span>
           </span>
           <button class="refresh-btn" data-action="refresh" title="点击立即刷新数据" ${loading ? 'disabled' : ''}>
