@@ -49,6 +49,24 @@ export function fmtErrorRate(ratio: number): string {
   return fmtPct(ratio, pct > 0 && pct < 0.1 ? 2 : 1)
 }
 
+export function fmtErrorTone(rate: number): 'ok' | 'warn' | 'bad' {
+  if (rate >= 0.05) {
+    return 'bad'
+  }
+  if (rate >= 0.01) {
+    return 'warn'
+  }
+  return 'ok'
+}
+
+export function renderErrorPill(failed: number, rate: number): string {
+  if (failed === 0) {
+    return '<span class="num dim">0%</span>'
+  }
+  const tone = fmtErrorTone(rate)
+  return `<span class="badge" data-tone="${tone}">${fmtErrorRate(rate)}</span>`
+}
+
 export function fmtLatency(ms: number | null): string {
   if (ms === null || !Number.isFinite(ms)) {
     return '–'

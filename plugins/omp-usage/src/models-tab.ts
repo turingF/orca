@@ -1,14 +1,17 @@
 // Renders http://127.0.0.1:59127/#/models?range=24h:
 // 1. 4 Stat cards (Models used, Most used, Requests + sparkline, API-equivalent cost)
 // 2. Request share stacked bar chart (Share % vs Requests count) + model legend
-// 3. All models table with meter bars, mini trend sparklines, and expandable row details
-import { fmtBucketTick, fmtCompact, fmtCost, fmtInt, fmtPct, fmtTps } from './format'
-import { buildModelSwatches, modelKey, renderExpandedModelDetail } from './models-detail'
+// 3. All models table (delegated to models-table.ts with Compact and Full views)
+import { fmtBucketTick, fmtCompact, fmtCost, fmtInt, fmtPct } from './format'
+import { buildModelSwatches, modelKey } from './models-detail'
+import { renderAllModelsCard } from './models-table'
 import { esc, renderSparkline } from './overview-cards'
-import type { OverviewReport, ShareChartMode } from './protocol'
+import type { ModelsTableMode, OverviewReport, ShareChartMode } from './protocol'
+
 export function renderModelsTab(
   report: OverviewReport,
   shareMode: ShareChartMode,
+  tableMode: ModelsTableMode,
   expandedModelKey: string | null
 ): string {
   const models = report.byModel
@@ -200,80 +203,6 @@ export function renderModelsTab(
       </div>
     </section>
 
-    <section class="card">
-      <div class="card-header">
-        <div class="card-titles">
-          <h2 class="card-title">All models</h2>
-          <p class="card-description">Click a row for latency and throughput over time</p>
-        </div>
-      </div>
-      <div class="card-body" data-flush="true">
-        <table class="table">
-          <colgroup>
-            <col style="width: 38%" />
-            <col style="width: 20%" />
-            <col style="width: 20%" />
-            <col style="width: 22%" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>Model</th>
-              <th class="right">Requests</th>
-              <th class="right">Tokens</th>
-              <th class="right">Cost / Speed</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${models
-              .map((m, idx) => {
-                const k = modelKey(m)
-                const color = swatches.get(k) ?? '#5ad8e6'
-                const isOpen = expandedModelKey === k
-                const conv =
-                  m.totalInputTokens +
-                  m.totalOutputTokens +
-                  m.totalCacheReadTokens +
-                  m.totalCacheWriteTokens
-                const tMap = modelTrendMap.get(k)
-                const trendVals = report.buckets.map((b) => tMap?.get(b) ?? 0)
-                const reqPct = Math.max(4, Math.round((m.totalRequests / maxRequests) * 100))
-                const speedStr =
-                  m.avgTokensPerSecond !== null ? `${fmtTps(m.avgTokensPerSecond)}/s` : '–'
-                return `
-                  <tr class="clickable-row" data-model-row="${esc(k)}">
-                    <td title="${esc(`${m.model} (${m.provider})`)}">
-                      <div class="row" style="gap: 6px">
-                        <span class="models-chevron" data-open="${isOpen}">▸</span>
-                        <span class="swatch" style="background:${color}"></span>
-                        <span class="mono cell-primary">${esc(m.model)}</span>
-                      </div>
-                      <div class="cell-secondary" style="padding-left: 24px">${esc(m.provider)}</div>
-                    </td>
-                    <td class="right">
-                      <div class="num cell-primary">${fmtInt(m.totalRequests)}</div>
-                      <div class="meter"><div class="meter-fill" style="width:${reqPct}%;background:${color}"></div></div>
-                    </td>
-                    <td class="right">
-                      <div class="num cell-primary">${fmtCompact(conv)}</div>
-                      <div class="cell-secondary num">${fmtPct(m.cacheRate)}</div>
-                    </td>
-                    <td class="right">
-                      <div class="num cell-primary">${fmtCost(m.totalCost, m.unpricedRequests)}</div>
-                      <div class="cell-secondary num">${speedStr}</div>
-                      ${renderSparkline(trendVals, color, `tr-${idx}`)}
-                    </td>
-                  </tr>
-                  ${
-                    isOpen
-                      ? `<tr class="detail-row"><td colspan="4">${renderExpandedModelDetail(m, color, report)}</td></tr>`
-                      : ''
-                  }
-                `
-              })
-              .join('')}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    ${renderAllModelsCard(report, tableMode, expandedModelKey, swatches, maxRequests, modelTrendMap)}
   `
 }

@@ -5,6 +5,7 @@ export type UsageRange = '1h' | '24h' | '7d' | '30d' | '90d' | 'all'
 export type SubTab = 'overview' | 'models'
 export type ActivityMetric = 'requests' | 'tokens' | 'cost'
 export type ShareChartMode = 'share' | 'requests'
+export type ModelsTableMode = 'compact' | 'full'
 
 export type OverallStats = {
   totalRequests: number
