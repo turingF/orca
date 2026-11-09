@@ -2,9 +2,20 @@
   "manifestVersion": 2,
   "execution": "trusted-worker",
   "id": "omp-usage",
-  "name": "OMP Stats Overview",
+  "name": "omp stats",
   "version": "0.1.0",
-  "description": "OMP stats overview in the Orca sidebar: KPI cards with sparklines, 8-metric strip, hourly Activity chart, Token mix & By agent breakdown, and Latest requests.",
+  "description": "将 omp 官方遥测看板 (http://127.0.0.1:59127) 原生内嵌至 Orca 侧边栏：KPI 核心指标折线图、8格性能条、时序活动柱状图、Token 构成、以及模型耗时/吞吐/TTFT/错误率多维分析表。",
+  "icon": "assets/icon.png",
+  "cover": {
+    "path": "assets/cover.png",
+    "alt": "omp stats telemetry overview and models dashboard"
+  },
+  "screenshots": [
+    {
+      "path": "assets/screenshot-1.png",
+      "alt": "omp stats overview with KPI sparklines and activity chart"
+    }
+  ],
   "engines": { "orca": ">=1.4.248" },
   "pluginApi": 1,
   "main": "worker/main.mjs",
