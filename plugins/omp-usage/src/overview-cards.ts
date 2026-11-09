@@ -88,16 +88,19 @@ export function renderTopHeader(
 
   return `
     <div class="topbar-row">
-      <button class="live-chip" data-action="refresh" title="Click to refresh">
-        <span class="dot" data-tone="live" data-pulse="true"></span>
-        <span>Live</span>
-        <span class="live-chip-count">${esc(loading ? 'syncing…' : liveAgo)}</span>
-      </button>
+      <div class="status-group">
+        <span class="live-chip">
+          <span class="dot" data-tone="live" data-pulse="true"></span>
+          <span>Live</span>
+          <span class="live-chip-count">${esc(liveAgo)}</span>
+        </span>
+        <button class="refresh-btn" data-action="refresh" title="点击立即刷新数据" ${loading ? 'disabled' : ''}>
+          <span class="refresh-icon ${loading ? 'spin' : ''}">⟳</span>
+          <span>${loading ? '刷新中…' : '刷新'}</span>
+        </button>
+      </div>
       <div class="segmented">
-        ${RANGES.map(
-          (r) =>
-            `<button class="segmented-option" data-active="${range === r.value}" data-range="${r.value}">${r.label}</button>`
-        ).join('')}
+        ${RANGES.map((r) => `<button class="segmented-option" data-active="${range === r.value}" data-range="${r.value}">${r.label}</button>`).join('')}
       </div>
     </div>
     <nav class="tabs" aria-label="Stats views">
@@ -118,7 +121,7 @@ export function renderStatGrids(report: OverviewReport): string {
   const reqSeries = alignSeries(report, (x) => x.requests)
   const tokSeries = alignSeries(report, (x) => x.tokens)
   const errSeries = alignSeries(report, (x) => x.errors)
-
+  const unpricedFoot = p.unpricedRequests > 0 ? `${fmtInt(p.unpricedRequests)} unpriced` : '&nbsp;'
   return `
     <div class="page-header">
       <h1 class="page-title">Overview</h1>
@@ -129,7 +132,7 @@ export function renderStatGrids(report: OverviewReport): string {
       <div class="stat" title="What this usage would cost at public API rates">
         <div class="stat-label">API-equivalent cost</div>
         <div class="stat-value">${fmtCost(p.totalCost, p.unpricedRequests)}</div>
-        <div class="stat-foot">${p.unpricedRequests > 0 ? `${fmtInt(p.unpricedRequests)} unpriced` : '&nbsp;'}</div>
+        <div class="stat-foot">${unpricedFoot}</div>
         ${renderSparkline(costSeries, 'var(--chart-secondary)', 'cost')}
       </div>
       <div class="stat">
@@ -158,38 +161,14 @@ export function renderStatGrids(report: OverviewReport): string {
     </div>
 
     <div class="stat-grid" data-strip="sm">
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Uncached input</div>
-        <div class="stat-value">${fmtCompact(p.totalInputTokens)}</div>
-      </div>
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Cache read</div>
-        <div class="stat-value">${fmtCompact(p.totalCacheReadTokens)}</div>
-      </div>
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Cache write</div>
-        <div class="stat-value">${fmtCompact(p.totalCacheWriteTokens)}</div>
-      </div>
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Output</div>
-        <div class="stat-value">${fmtCompact(p.totalOutputTokens)}</div>
-      </div>
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Premium reqs</div>
-        <div class="stat-value">${fmtInt(Math.round(p.totalPremiumRequests * 100) / 100)}</div>
-      </div>
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Tokens/s</div>
-        <div class="stat-value">${fmtTps(p.avgTokensPerSecond)}</div>
-      </div>
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Avg latency</div>
-        <div class="stat-value">${fmtLatency(p.avgDuration)}</div>
-      </div>
-      <div class="stat" data-size="sm">
-        <div class="stat-label">Avg TTFT</div>
-        <div class="stat-value">${fmtLatency(p.avgTtft)}</div>
-      </div>
+      <div class="stat" data-size="sm"><div class="stat-label">Uncached input</div><div class="stat-value">${fmtCompact(p.totalInputTokens)}</div></div>
+      <div class="stat" data-size="sm"><div class="stat-label">Cache read</div><div class="stat-value">${fmtCompact(p.totalCacheReadTokens)}</div></div>
+      <div class="stat" data-size="sm"><div class="stat-label">Cache write</div><div class="stat-value">${fmtCompact(p.totalCacheWriteTokens)}</div></div>
+      <div class="stat" data-size="sm"><div class="stat-label">Output</div><div class="stat-value">${fmtCompact(p.totalOutputTokens)}</div></div>
+      <div class="stat" data-size="sm"><div class="stat-label">Premium reqs</div><div class="stat-value">${fmtInt(Math.round(p.totalPremiumRequests * 100) / 100)}</div></div>
+      <div class="stat" data-size="sm"><div class="stat-label">Tokens/s</div><div class="stat-value">${fmtTps(p.avgTokensPerSecond)}</div></div>
+      <div class="stat" data-size="sm"><div class="stat-label">Avg latency</div><div class="stat-value">${fmtLatency(p.avgDuration)}</div></div>
+      <div class="stat" data-size="sm"><div class="stat-label">Avg TTFT</div><div class="stat-value">${fmtLatency(p.avgTtft)}</div></div>
     </div>
   `
 }
