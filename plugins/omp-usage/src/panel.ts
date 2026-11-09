@@ -105,6 +105,11 @@ function render(): void {
   }
 
   root.innerHTML = html
+
+  if (state.expandedModelKey) {
+    const chartEl = root.querySelector('.models-detail-chart')
+    chartEl?.scrollIntoView({ block: 'end' })
+  }
 }
 
 async function fetchOverview(nextRange?: UsageRange): Promise<void> {

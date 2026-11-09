@@ -288,9 +288,7 @@ export function renderActivityCard(report: OverviewReport, metric: ActivityMetri
           <p class="card-description">Per ${perUnit}</p>
         </div>
         <div class="segmented" data-size="sm">
-          <button class="segmented-option" data-active="${metric === 'requests'}" data-metric="requests">Requests</button>
-          <button class="segmented-option" data-active="${metric === 'tokens'}" data-metric="tokens">Tokens</button>
-          <button class="segmented-option" data-active="${metric === 'cost'}" data-metric="cost">Cost</button>
+          <button class="segmented-option" data-active="${metric === 'requests'}" data-metric="requests">Requests</button><button class="segmented-option" data-active="${metric === 'tokens'}" data-metric="tokens">Tokens</button><button class="segmented-option" data-active="${metric === 'cost'}" data-metric="cost">Cost</button>
         </div>
       </div>
       <div class="card-body">

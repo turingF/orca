@@ -621,15 +621,14 @@
 
       .detail-row td {
         background: rgba(255, 255, 255, 0.02);
-        padding: 10px 14px 12px !important;
+        padding: 8px 10px 10px !important;
       }
 
       .models-detail {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
       }
-
       .models-detail-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -658,7 +657,22 @@
         margin: 0;
         color: var(--ink-1);
       }
+      .models-detail-chart {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line-1);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
 
+      .chart-legend {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 11px;
+        color: var(--ink-2);
+      }
       .empty {
         display: flex;
         align-items: center;
