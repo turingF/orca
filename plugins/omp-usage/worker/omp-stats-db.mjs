@@ -1,5 +1,5 @@
 // Queries ~/.omp/stats.db with the exact SQL formulas used by omp's stats dashboard
-// (http://127.0.0.1:59127/#/overview?range=24h).
+// (http://127.0.0.1:59127/#/overview?range=24h and #/models?range=24h).
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -18,6 +18,25 @@ const RANGES = {
   '90d': { windowLabel: 'the last 90 days', spanMs: 90 * DAY_MS, bucketMs: DAY_MS },
   all: { windowLabel: 'all time', spanMs: null, bucketMs: DAY_MS }
 }
+
+const METRIC_COLUMNS_SQL = `
+  COUNT(*) AS requests,
+  SUM(CASE WHEN stop_reason = 'error' THEN 1 ELSE 0 END) AS failed,
+  COALESCE(SUM(input_tokens), 0) AS input_tokens,
+  COALESCE(SUM(output_tokens), 0) AS output_tokens,
+  COALESCE(SUM(cache_read_tokens), 0) AS cache_read_tokens,
+  COALESCE(SUM(cache_write_tokens), 0) AS cache_write_tokens,
+  TOTAL(premium_requests) AS premium_requests,
+  TOTAL(cost_total) AS cost_total,
+  COALESCE(SUM(CASE WHEN total_tokens > 0 AND cost_total = 0 AND (provider = 'xai-oauth' OR cost_unpriced = 1) THEN 1 ELSE 0 END), 0) AS unpriced,
+  TOTAL(CASE WHEN cost_no_cache_input > 0 THEN cost_input + cost_cache_read + cost_cache_write ELSE 0 END) AS cached_prompt_cost,
+  TOTAL(cost_no_cache_input) AS no_cache_input_cost,
+  TOTAL(duration) / NULLIF(COUNT(duration), 0) AS avg_duration,
+  TOTAL(ttft) / NULLIF(COUNT(ttft), 0) AS avg_ttft,
+  TOTAL(CASE WHEN duration > 0 THEN output_tokens * 1000.0 / duration END) / NULLIF(COUNT(CASE WHEN duration > 0 THEN 1 END), 0) AS avg_tps,
+  MIN(timestamp) AS first_ts,
+  MAX(timestamp) AS last_ts
+`
 
 function buildBuckets(range, timestamps, now) {
   const spec = RANGES[range] ?? RANGES['24h']
@@ -117,6 +136,8 @@ export function queryOverviewReport({ range = '24h', dbPath } = {}) {
       byAgentType: [],
       timeSeries: [],
       recentRequests: [],
+      byModel: [],
+      modelSeries: [],
       generatedAt: now
     }
   }
@@ -124,28 +145,18 @@ export function queryOverviewReport({ range = '24h', dbPath } = {}) {
   const db = new DatabaseSync(resolvedPath, { readOnly: true })
   try {
     const overallRow = db
-      .prepare(
-        `SELECT
-          COUNT(*) AS requests,
-          SUM(CASE WHEN stop_reason = 'error' THEN 1 ELSE 0 END) AS failed,
-          COALESCE(SUM(input_tokens), 0) AS input_tokens,
-          COALESCE(SUM(output_tokens), 0) AS output_tokens,
-          COALESCE(SUM(cache_read_tokens), 0) AS cache_read_tokens,
-          COALESCE(SUM(cache_write_tokens), 0) AS cache_write_tokens,
-          TOTAL(premium_requests) AS premium_requests,
-          TOTAL(cost_total) AS cost_total,
-          COALESCE(SUM(CASE WHEN total_tokens > 0 AND cost_total = 0 AND (provider = 'xai-oauth' OR cost_unpriced = 1) THEN 1 ELSE 0 END), 0) AS unpriced,
-          TOTAL(CASE WHEN cost_no_cache_input > 0 THEN cost_input + cost_cache_read + cost_cache_write ELSE 0 END) AS cached_prompt_cost,
-          TOTAL(cost_no_cache_input) AS no_cache_input_cost,
-          TOTAL(duration) / NULLIF(COUNT(duration), 0) AS avg_duration,
-          TOTAL(ttft) / NULLIF(COUNT(ttft), 0) AS avg_ttft,
-          TOTAL(CASE WHEN duration > 0 THEN output_tokens * 1000.0 / duration END) / NULLIF(COUNT(CASE WHEN duration > 0 THEN 1 END), 0) AS avg_tps,
-          MIN(timestamp) AS first_ts,
-          MAX(timestamp) AS last_ts
-        FROM messages
-        WHERE timestamp >= ?`
-      )
+      .prepare(`SELECT ${METRIC_COLUMNS_SQL} FROM messages WHERE timestamp >= ?`)
       .get(cutoff)
+
+    const byModelRows = db
+      .prepare(
+        `SELECT model, provider, ${METRIC_COLUMNS_SQL}
+         FROM messages
+         WHERE timestamp >= ?
+         GROUP BY model, provider
+         ORDER BY requests DESC`
+      )
+      .all(cutoff)
 
     const agentRows = db
       .prepare(
@@ -162,6 +173,7 @@ export function queryOverviewReport({ range = '24h', dbPath } = {}) {
         GROUP BY agent_type`
       )
       .all(cutoff)
+
     const bucketMs = spec.bucketMs
     const seriesRows = db
       .prepare(
@@ -174,6 +186,22 @@ export function queryOverviewReport({ range = '24h', dbPath } = {}) {
         FROM messages
         WHERE timestamp >= ?
         GROUP BY 1
+        ORDER BY 1`
+      )
+      .all(cutoff)
+
+    const modelSeriesRows = db
+      .prepare(
+        `SELECT
+          (timestamp / ${bucketMs}) * ${bucketMs} AS bucket,
+          model,
+          provider,
+          COUNT(*) AS requests,
+          TOTAL(ttft) / NULLIF(COUNT(ttft), 0) AS avg_ttft,
+          TOTAL(CASE WHEN duration > 0 THEN output_tokens * 1000.0 / duration END) / NULLIF(COUNT(CASE WHEN duration > 0 THEN 1 END), 0) AS avg_tps
+        FROM messages
+        WHERE timestamp >= ?
+        GROUP BY 1, model, provider
         ORDER BY 1`
       )
       .all(cutoff)
@@ -236,6 +264,19 @@ export function queryOverviewReport({ range = '24h', dbPath } = {}) {
         totalTokens: Number(r.total_tokens ?? 0),
         costTotal: Number(r.cost_total ?? 0),
         costUnpriced: Boolean(r.cost_unpriced)
+      })),
+      byModel: byModelRows.map((r) => ({
+        model: String(r.model ?? '—'),
+        provider: String(r.provider ?? '—'),
+        ...shapeOverall(r)
+      })),
+      modelSeries: modelSeriesRows.map((r) => ({
+        timestamp: Number(r.bucket),
+        model: String(r.model ?? '—'),
+        provider: String(r.provider ?? '—'),
+        requests: Number(r.requests ?? 0),
+        avgTtft: r.avg_ttft === null ? null : Number(r.avg_ttft),
+        avgTokensPerSecond: r.avg_tps === null ? null : Number(r.avg_tps)
       })),
       generatedAt: now
     }

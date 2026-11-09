@@ -1,5 +1,5 @@
-// Renders the top header, 5 Primary KPI Stat Cards with sparklines, 8 Secondary Stat Cells,
-// and the Activity Bar Chart card.
+// Renders the top header, sub-tab navigation, 5 Primary KPI Stat Cards with sparklines,
+// 8 Secondary Stat Cells, and the Activity Bar Chart card.
 import {
   fmtAgo,
   fmtBucketTick,
@@ -11,7 +11,7 @@ import {
   fmtPct,
   fmtTps
 } from './format'
-import type { ActivityMetric, OverviewReport, UsageRange } from './protocol'
+import type { ActivityMetric, OverviewReport, SubTab, UsageRange } from './protocol'
 
 const RANGES: { value: UsageRange; label: string }[] = [
   { value: '1h', label: '1h' },
@@ -41,7 +41,11 @@ function alignSeries(
   return report.buckets.map((b) => byTs.get(b) ?? 0)
 }
 
-function renderSparkline(values: number[], color = 'var(--chart-primary)', uid = 's'): string {
+export function renderSparkline(
+  values: number[],
+  color = 'var(--chart-primary)',
+  uid = 's'
+): string {
   if (values.length < 2) {
     return ''
   }
@@ -75,11 +79,12 @@ function renderSparkline(values: number[], color = 'var(--chart-primary)', uid =
 
 export function renderTopHeader(
   range: UsageRange,
+  tab: SubTab,
   report: OverviewReport | null,
   loading: boolean
 ): string {
   const liveAgo = report ? fmtAgo(report.generatedAt) : 'syncing…'
-  const windowLabel = report?.windowLabel ?? 'the last 24 hours'
+  const modelCount = report?.byModel.length ?? 0
 
   return `
     <div class="topbar-row">
@@ -95,10 +100,13 @@ export function renderTopHeader(
         ).join('')}
       </div>
     </div>
-    <div class="page-header">
-      <h1 class="page-title">Overview</h1>
-      <p class="page-description">Everything omp did across your sessions in ${esc(windowLabel)}.</p>
-    </div>
+    <nav class="tabs" aria-label="Stats views">
+      <button class="tab" data-active="${tab === 'overview'}" data-tab="overview">Overview</button>
+      <button class="tab" data-active="${tab === 'models'}" data-tab="models">
+        <span>Models</span>
+        ${modelCount > 0 ? `<span class="tab-badge num">${modelCount}</span>` : ''}
+      </button>
+    </nav>
   `
 }
 
@@ -112,6 +120,11 @@ export function renderStatGrids(report: OverviewReport): string {
   const errSeries = alignSeries(report, (x) => x.errors)
 
   return `
+    <div class="page-header">
+      <h1 class="page-title">Overview</h1>
+      <p class="page-description">Everything omp did across your sessions in ${esc(report.windowLabel)}.</p>
+    </div>
+
     <div class="stat-grid">
       <div class="stat" title="What this usage would cost at public API rates">
         <div class="stat-label">API-equivalent cost</div>

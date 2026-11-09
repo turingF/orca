@@ -1,8 +1,10 @@
 // Shared contract between the sidebar panel (src/panel.ts) and the worker (worker/main.mjs).
-// Mirrors the exact data structures of http://127.0.0.1:59127/#/overview?range=24h.
+// Mirrors http://127.0.0.1:59127/#/overview?range=24h and #/models?range=24h.
 
 export type UsageRange = '1h' | '24h' | '7d' | '30d' | '90d' | 'all'
+export type SubTab = 'overview' | 'models'
 export type ActivityMetric = 'requests' | 'tokens' | 'cost'
+export type ShareChartMode = 'share' | 'requests'
 
 export type OverallStats = {
   totalRequests: number
@@ -23,6 +25,20 @@ export type OverallStats = {
   avgTokensPerSecond: number | null
   firstTimestamp: number
   lastTimestamp: number
+}
+
+export type ModelStatsRow = OverallStats & {
+  model: string
+  provider: string
+}
+
+export type ModelSeriesPoint = {
+  timestamp: number
+  model: string
+  provider: string
+  requests: number
+  avgTtft: number | null
+  avgTokensPerSecond: number | null
 }
 
 export type AgentTypeRow = {
@@ -65,6 +81,8 @@ export type OverviewReport = {
   byAgentType: AgentTypeRow[]
   timeSeries: TimeSeriesPoint[]
   recentRequests: RecentRequestRow[]
+  byModel: ModelStatsRow[]
+  modelSeries: ModelSeriesPoint[]
   generatedAt: number
 }
 
