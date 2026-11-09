@@ -4,7 +4,7 @@
   "id": "omp-usage",
   "name": "omp stats",
   "version": "0.1.0",
-  "description": "将 omp 官方遥测看板 (http://127.0.0.1:59127) 原生内嵌至 Orca 侧边栏：KPI 核心指标折线图、8格性能条、时序活动柱状图、Token 构成、以及模型耗时/吞吐/TTFT/错误率多维分析表。",
+  "description": "Native Orca sidebar embedding of omp's official telemetry dashboard (http://127.0.0.1:59127). Directly queries ~/.omp/stats.db in read-only mode via an embedded Node SQLite worker (~9ms) to display live KPI sparklines, latency, throughput, token mix, and per-model performance tables.",
   "icon": "assets/icon.png",
   "cover": {
     "path": "assets/cover.png",
