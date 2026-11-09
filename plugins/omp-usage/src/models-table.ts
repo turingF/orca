@@ -1,8 +1,7 @@
 // Renders the All models table in two aesthetic modes:
-// 1. Compact (default for narrow sidebar): 4 smart columns showing Model, Requests / Errors,
-//    Tokens / Cache rate, and Tokens/s · TTFT.
-// 2. Full Table (wide mode): all 9 columns from Image 2 (Model, Requests, Cost, Tokens, Cache rate,
-//    Errors, Tokens/s, TTFT, Trend) inside a horizontal scroll wrapper.
+// 1. Compact (default for narrow sidebar): 5 columns showing Model, Errors (color badge, no histogram),
+//    Tokens / Cache rate, Speed · TTFT, and Trend (mini sparkline line chart).
+// 2. Full Table (wide mode): all 10 columns from Image 2 in a smooth horizontal scroll wrapper.
 import { fmtCompact, fmtCost, fmtInt, fmtLatency, fmtPct, fmtTps, renderErrorPill } from './format'
 import { modelKey, renderExpandedModelDetail } from './models-detail'
 import { esc, renderSparkline } from './overview-cards'
@@ -11,35 +10,36 @@ import type { ModelStatsRow, ModelsTableMode, OverviewReport } from './protocol'
 function renderCompactRows(
   models: ModelStatsRow[],
   swatches: Map<string, string>,
-  maxRequests: number,
+  modelTrendMap: Map<string, Map<number, number>>,
   expandedModelKey: string | null,
   report: OverviewReport
 ): string {
   return models
-    .map((m) => {
+    .map((m, idx) => {
       const k = modelKey(m)
       const color = swatches.get(k) ?? '#5ad8e6'
       const isOpen = expandedModelKey === k
       const conv =
         m.totalInputTokens + m.totalOutputTokens + m.totalCacheReadTokens + m.totalCacheWriteTokens
-      const reqPct = Math.max(4, Math.round((m.totalRequests / maxRequests) * 100))
+      const tMap = modelTrendMap.get(k)
+      const trendVals = report.buckets.map((b) => tMap?.get(b) ?? 0)
       const speedStr = m.avgTokensPerSecond !== null ? `${fmtTps(m.avgTokensPerSecond)}/s` : '–'
       const ttftStr = m.avgTtft !== null ? fmtLatency(m.avgTtft) : '–'
 
       return `
         <tr class="clickable-row" data-model-row="${esc(k)}">
-          <td title="${esc(`${m.model} (${m.provider})`)}">
-            <div class="row" style="gap: 6px">
+          <td title="${esc(`${m.model} (${m.provider}) · ${fmtInt(m.totalRequests)} requests`)}">
+            <div class="row" style="gap: 5px">
               <span class="models-chevron" data-open="${isOpen}">▸</span>
               <span class="swatch" style="background:${color}"></span>
-              <span class="mono cell-primary truncate" style="max-width: 105px">${esc(m.model)}</span>
+              <span class="mono cell-primary truncate" style="max-width: 108px">${esc(m.model)}</span>
             </div>
-            <div class="cell-secondary truncate" style="padding-left: 24px; max-width: 105px">${esc(m.provider)}</div>
+            <div class="cell-secondary truncate" style="padding-left: 21px; max-width: 108px">
+              ${esc(m.provider)} · ${fmtInt(m.totalRequests)}
+            </div>
           </td>
           <td class="right">
-            <div class="num cell-primary">${fmtInt(m.totalRequests)}</div>
-            <div class="meter"><div class="meter-fill" style="width:${reqPct}%;background:${color}"></div></div>
-            <div style="margin-top: 3px">${renderErrorPill(m.failedRequests, m.errorRate)}</div>
+            ${renderErrorPill(m.failedRequests, m.errorRate)}
           </td>
           <td class="right">
             <div class="num cell-primary" style="font-weight: 600">${fmtCompact(conv)}</div>
@@ -49,10 +49,13 @@ function renderCompactRows(
             <div class="num cell-primary" style="font-weight: 600">${speedStr}</div>
             <div class="cell-secondary num">${ttftStr}</div>
           </td>
+          <td class="right" style="padding-left: 4px; padding-right: 10px">
+            ${renderSparkline(trendVals, color, `tr-c-${idx}`)}
+          </td>
         </tr>
         ${
           isOpen
-            ? `<tr class="detail-row"><td colspan="4">${renderExpandedModelDetail(m, color, report)}</td></tr>`
+            ? `<tr class="detail-row"><td colspan="5">${renderExpandedModelDetail(m, color, report)}</td></tr>`
             : ''
         }
       `
@@ -157,21 +160,23 @@ export function renderAllModelsCard(
             ? `
           <table class="table">
             <colgroup>
-              <col style="width: 33%" />
-              <col style="width: 20%" />
-              <col style="width: 21%" />
-              <col style="width: 26%" />
+              <col style="width: 32%" />
+              <col style="width: 14%" />
+              <col style="width: 18%" />
+              <col style="width: 18%" />
+              <col style="width: 18%" />
             </colgroup>
             <thead>
               <tr>
                 <th>Model</th>
-                <th class="right" title="Requests and error rate">Requests / Err</th>
-                <th class="right" title="Total conversation tokens and cache rate">Tokens</th>
-                <th class="right" title="Tokens/s and Time-To-First-Token latency">Speed · TTFT</th>
+                <th class="right">Errors</th>
+                <th class="right">Tokens</th>
+                <th class="right" title="Tokens/s and TTFT">Speed</th>
+                <th class="right" style="padding-right: 10px">Trend</th>
               </tr>
             </thead>
             <tbody>
-              ${renderCompactRows(models, swatches, maxRequests, expandedModelKey, report)}
+              ${renderCompactRows(models, swatches, modelTrendMap, expandedModelKey, report)}
             </tbody>
           </table>
         `
