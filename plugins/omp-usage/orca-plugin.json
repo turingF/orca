@@ -1,0 +1,22 @@
+{
+  "manifestVersion": 2,
+  "execution": "trusted-worker",
+  "id": "omp-usage",
+  "name": "OMP Stats Overview",
+  "version": "0.1.0",
+  "description": "OMP stats overview in the Orca sidebar: KPI cards with sparklines, 8-metric strip, hourly Activity chart, Token mix & By agent breakdown, and Latest requests.",
+  "engines": { "orca": ">=1.4.248" },
+  "pluginApi": 1,
+  "main": "worker/main.mjs",
+  "contributes": {
+    "panels": [
+      {
+        "id": "usage",
+        "title": "omp stats",
+        "icon": "bar-chart-3",
+        "entry": "src/panel.html"
+      }
+    ]
+  },
+  "capabilities": []
+}
