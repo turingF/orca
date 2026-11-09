@@ -88,19 +88,24 @@ export function renderTopHeader(
 
   return `
     <div class="topbar-row">
-      <div class="status-group">
-        <span class="live-chip">
-          <span class="dot" data-tone="live" data-pulse="true"></span>
-          <span>Live</span>
-          <span class="live-chip-count">${esc(liveAgo)}</span>
-        </span>
-        <button class="refresh-btn" data-action="refresh" title="点击立即刷新数据" ${loading ? 'disabled' : ''}>
-          <span class="refresh-icon ${loading ? 'spin' : ''}">⟳</span>
-          <span>${loading ? '刷新中…' : '刷新'}</span>
-        </button>
+      <div class="topbar-controls">
+        <div class="status-group">
+          <span class="live-chip">
+            <span class="dot" data-tone="live" data-pulse="true"></span>
+            <span>Live</span>
+            <span class="live-chip-count">${esc(liveAgo)}</span>
+          </span>
+          <button class="refresh-btn" data-action="refresh" title="点击立即刷新数据" ${loading ? 'disabled' : ''}>
+            <span class="refresh-icon ${loading ? 'spin' : ''}">⟳</span>
+            <span>${loading ? '刷新中…' : '刷新'}</span>
+          </button>
+        </div>
+        <div class="segmented">
+          ${RANGES.map((r) => `<button class="segmented-option" data-active="${range === r.value}" data-range="${r.value}">${r.label}</button>`).join('')}
+        </div>
       </div>
-      <div class="segmented">
-        ${RANGES.map((r) => `<button class="segmented-option" data-active="${range === r.value}" data-range="${r.value}">${r.label}</button>`).join('')}
+      <div class="topbar-icon-card" title="omp AI coding agent">
+        <img src="./assets/omp-logo.png" class="topbar-icon" alt="omp" />
       </div>
     </div>
     <nav class="tabs" aria-label="Stats views">
